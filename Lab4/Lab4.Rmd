@@ -1,0 +1,165 @@
+---
+title: "Lab 4 - Schwierking"
+output:
+  html_document:
+    df_print: paged
+---
+### Data Set-up
+
+```{r}
+library(tidyverse)
+library(reshape2)
+library(readxl)
+library(dplyr)
+library(ggplot2)
+defense <- read_excel("C:/Users/samue/OneDrive/Documents/cyclonesFootball2020.xlsx", sheet='Defensive')
+str(defense)
+offense <- read_excel("C:/Users/samue/OneDrive/Documents/cyclonesFootball2020.xlsx", sheet='Offensive')
+str(offense)
+bio <- read_excel("C:/Users/samue/OneDrive/Documents/cyclonesFootball2020.xlsx", sheet='Biography')
+str(bio)
+```
+
+### Part 1
+
+```{r}
+defClean <- defense %>%
+  rename(Opponent = Opponent_Opponent) %>%
+  mutate(Opponent = factor(Opponent)) %>%
+  mutate(Name = factor(Name)) %>%
+  dplyr::mutate(across(Tackles_Solo:Pass_PB, as.numeric)) %>%
+  group_by(Name,Opponent) %>%
+  mutate(Times_Played = row_number()) %>%
+  mutate(Times_Played = as.numeric(Times_Played))
+
+head(defClean,20)
+
+offClean <- offense %>%
+  rename(Opponent = Opponent_Opponent) %>%
+  mutate(Opponent = factor(Opponent)) %>%
+  mutate(Name = factor(Name)) %>%
+  dplyr::mutate(across(Receiving_REC:Passing_INT, as.numeric)) %>%
+  group_by(Name,Opponent) %>%
+  mutate(Times_Played = row_number()) %>%
+  mutate(Times_Played = as.numeric(Times_Played))
+
+head(offClean,20)
+
+bioClean <- bio %>%
+  mutate(Name = factor(Name)) %>%
+  mutate(Weight = as.numeric(Weight)) %>%
+  separate(Height, c("feet","inches"), "-") %>%
+  dplyr::mutate(across(feet:inches, as.numeric)) %>%
+  mutate(Height = (feet * 12)+inches)
+
+
+str(defClean)
+str(offClean)
+str(bioClean)
+```
+
+### Part 2
+
+# Question 1
+
+Reformat the offClean data frame into a tidy format using pivot_longer. The type of statistic (Receiving_REC for the number of receivings, Receiving_YDS for receiving yards, etc) is added as a new key column named stat.
+```{r}
+offClean2 <- offClean %>%
+  pivot_longer(!Name & !Opponent, names_to = 'Stat_Type', values_to = 'stat') %>%
+  drop_na(stat)
+
+offClean2
+```
+
+
+# Question 2
+Obtain the player-level offensive statistics. Namely, for each player and each type of statistics, obtain the sum of the statistics in all games.
+```{r}
+ offClean3 <- offClean2 %>% 
+  group_by(Name, Stat_Type) %>%
+  summarize(Sum = sum(stat, na.rm= TRUE))
+
+offClean3
+```
+
+# Question 3
+Show the distributions of the player-level offensive statistics. The distribution of each offensive statsitic should be shown in a separate facet. Explain the patterns you see.
+
+Answer: The patterns on the faceted graphs is that there are very few people that actually get to play on the football team. All of the data is skewed right in some manner becuase there are so many people that have zero in that department.For instance there is only one person, Brock Purdy, who is going to have any of the passing stats because only one person can throw the ball each play.
+```{r}
+x <- ggplot(data = offClean2, aes(x=stat))+geom_histogram()+facet_wrap(.~Stat_Type)
+x
+```
+
+# Question 4
+
+Answer: It looks like there was more offense verse Oklahoma than verse Oregon. There is a large amount of recieving yards verse Oklahoma and more reception than verse Oregon. This could be because we played Oklahoma twice, but that data is still strong with two players have large amounts of receiving yards than verse Oregon.
+```{r}
+ggplot(offClean, aes(x=Receiving_YDS, y=Receiving_REC))+geom_point()+facet_wrap(.~ Opponent)
+```
+
+# Question 4
+
+Separate the Hometown column into two columns, namely, the city and the state where the player comes from. Print the first few rows of these two columns. (Hint: look at the sep= argument of separate)
+
+```{r}
+bioClean1 <- bioClean %>%
+  separate(Hometown, c("City","State"), ", ")
+
+str(bioClean1)
+```
+
+# Question 5
+
+How many players are there from each state?
+
+```{r}
+bioClean2 <- bioClean1 %>%
+  group_by(State) %>%
+  summarise(Count = n())
+
+bioClean2
+```
+
+#Question 6
+
+How does the performance of quarterback Brock Purdy relate to the performance of the ISU team? Comment on both the defense and offense.
+
+**I am going to say that Brock Purdy's performance is based on how many yards that he throws. And than success for offense would be total yards and then defense is going to be how many sacks.**
+
+**There is a trend that as Purdy does better so does the team and especially the offense. The defense has a difficult correlation because they are not directly dependent on each other.
+```{r}
+Brock <- offClean[offClean$Name == "Purdy, Brock",]
+Brock1 <- Brock %>%
+  select(Passing_YDS)
+Brock1
+
+TotalYRD <- offClean2 %>%
+  group_by(Opponent) %>%
+  summarize(Sum = sum(stat)) %>%
+  mutate()
+
+TotalYRD
+
+Sacks <- defClean %>%
+  group_by(Opponent) %>%
+  summarize(Sum = sum(Tackles_Sack))
+
+Sacks
+
+Offense <- inner_join(TotalYRD, Sacks, by = 'Opponent')
+df <- inner_join(Offense, Brock1, by = 'Opponent')
+
+df
+
+ggplot(df, aes(Passing_YDS, Sum.y))+geom_point()+
+  xlab("Purdy Passing Yards")+
+  ylab("Number of Sacks in Game")+
+  ggtitle("Sacks vs Purdy Passing Yards - Schwierking")
+
+
+ggplot(df, aes(Passing_YDS, Sum.x))+geom_point()+
+  xlab("Purdy Passing Yards")+
+  ylab("Total Yards")+
+  ggtitle("Total Yards vs Purdy Passing Yards - Schwierking")
+```
