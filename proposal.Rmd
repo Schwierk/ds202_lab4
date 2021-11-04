@@ -1,0 +1,27 @@
+---
+title: "Project Proposal - Schwierking"
+output: html_document
+---
+
+## Part 1
+
+#The name(s) of team member(s):
+
+I am going to be doing the project by myself: Sam Schwierking.
+
+#The link to the data source:
+
+https://data.census.gov/cedsci/table?tid=ASMAREA2017.AM1831BASIC01
+
+#An overview of the dataset:
+
+The data set is named: Annual Survey of Manufactures: Summary Statistics for Industry Groups and Industries in the U.S.: 2019 and 2018.
+The data set has over 1,296 rows of data. Some of the rows contain the 2017 NAICS code, which transfer to what industry that the manufacture is in. It also includes the year, which is between 2018 and 2019. The dataset also gets sales. It also goes into depth on the costs that it takes to manufacture the specific product that is provided by the code. In a nutshell its adds up all of the cost that would come in the manufacturing process for the manufacture and show what the sales would look like corresponding to it.
+
+#A brief plan for the exploratory analysis: What questions can be answered from the dataset?
+
+A couple different things that I can do within this data would be groupiing by the NAICS code and trying to look at what code has the average sales values. This would be the most profitable of the manufacturing industries. You could also add all of the cost including rent, payroll and other expenditures to be able to subtact from the sales that were calculated in order to count and see how many of the companies were actually profitable ar the end of the year. I also want to see some sort of distribution of Taxes and license fees and see it through using a histogram. I would also like to verify and see if the relative stand error for the Employer's cost for defined benefit pension plans ($1,000) is accurate based on my calculations. I would also like to graph the annual payroll to the number of employees on an x and y axis that way I would be able to see the relationship.
+
+**All in all this Proposal is quite vague. I tried my best to find a data set that meets all the requirements, but the requirements by themselves don't give much guidance. If I was lacking in an area, I would love to continue talking about where I went wrong for the future parts of the project.**
+
+
