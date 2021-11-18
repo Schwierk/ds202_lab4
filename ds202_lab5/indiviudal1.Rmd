@@ -1,0 +1,210 @@
+---
+title: "Lab 5"
+output: html_document
+---
+
+## Set-up and Question 4
+
+** These homework's are getting harder and harder and are taking away more and more time from my other classes. I think that number 3 took me around 4 hours and I felt like I got no where.
+
+```{r}
+library(dplyr)
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(readxl)
+library(ggrepel)
+library(ggthemes)
+
+acc <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/accident.csv", stringsAsFactors = FALSE)
+per <- read.csv("https://raw.githubusercontent.com/xdaiISU/ds202materials/master/hwlabs/fars2017/person.csv", stringsAsFactors = FALSE)
+GLC <- read_xlsx("C:\\Users\\samue\\OneDrive\\Documents\\ds202_lab5\\GLC.xlsx")
+
+df <-acc %>%
+  inner_join(per, by = "ST_CASE")
+
+#str(df)
+GLC$`State Code` <- as.integer(GLC$`State Code`)
+GLC$`County Code` <- as.integer(GLC$`County Code`)
+str(GLC)
+
+```
+
+
+## Question 1
+
+Create a data frame containing the persons who are fatally hurt in the accidents (see FARS manual and look up variable INJ_SEV)
+
+```{r}
+df1 <- df[df$INJ_SEV ==4,]
+
+str(df1)
+```
+
+## Question 2
+Create a data frame containing the most dangerous vehicle make in each state. The number of persons fatally hit in the vehicle make is used to assess the (non-)safety of a make. Make sure to handle the missing values appropriately. (look up variable MAKE)
+
+```{r}
+
+
+df2 <- df1 %>%
+  group_by(STATE.x, MAKE) %>%
+  summarise(count = n()) %>%
+  drop_na(MAKE)
+
+df2
+  
+df3 <- df2 %>%
+  group_by(STATE.x) %>%
+  filter(count == max(count))
+
+df3
+
+df14 <- df1 %>%
+  group_by(STATE.x) %>%
+  summarise(LAT = mean(LATITUDE), LON = mean(LONGITUD))%>%
+  drop_na
+
+df14
+
+```
+## Question 3
+Create a map, and label each state with the most dangerous vehicle. Discuss the definition of the most dangerous vehicle, and what you find from the map. (Hint: Read the description for the STATE and COUNTY columns in the FARS manual. The state & county codes are Geographic Locator Codes (GLCs) from the General Services Administration’s (GSA) publication. Use readxl::read_xlsx to read in the GLCs.)
+
+```{r}
+GLC1 <- GLC %>%
+  select(`State Code`, `State Name`) %>%
+  distinct(`State Code`, `State Name`) %>%
+  rename(STATE = `State Name`)%>%
+  rename(STATE.x = `State Code`)
+
+GLC1$region <- tolower(GLC1$STATE)
+
+GLC1
+
+joined1 <- inner_join(GLC1, df3, by = 'STATE.x')
+joined1
+
+states <- map_data('state')
+str(states)
+
+joined2 <- inner_join(joined1, states, by = 'region')
+joined2
+
+anti_join(states,joined1)
+
+joined6 <- inner_join(df14, df2, by = 'STATE.x')
+
+joined6 <- joined6 %>%
+  group_by(STATE.x) %>%
+  filter(count == max(count))
+
+joined6
+
+stateName <- states %>% 
+  group_by(region) %>%
+  summarize(long = mean(long), lat = mean(lat))
+
+s <- ggplot(states, aes(x=long, y=lat,group=group))+geom_polygon(color = "black", fill = "gray")
+
+
+#I know that it has to be something along the lines of this to put it in the map, but I was unable to figure it out.I was at least able to get all of the numbers and get the map plot up.#
+#s <- ggplot(states, aes(x=long, y=lat,group=group))+geom_polygon(color = "black", fill = "gray")+
+  #geom_text(data=joined6, aes(LON,LAT,label='MAKE'), color = 'black', injerit.aes = FALSE)
+
+s
+```
+
+
+
+## Question 5
+Tally the number of accidents by day of the week (DAY_WEEK), hour of the day (HOUR) and gender (SEX). Visualize the results and explain what you find.
+
+### What I learned was that Friday, Saturday, and Sunday (or the weekend) is the largest time for accidents. During the home rush hour is the highest probability of getting in an accident (about 4-8pm). Statistically speaking, Males getting about double the accidents as Females.
+
+*Day 1: Sunday*
+*Day 2: Monday*
+*Day 3: Tuesday*
+*Day 4: Wednesday*
+*Day 5: Thursday*
+*Day 6: Friday*
+*Day 7: Saturday*
+```{r}
+df4 <- df %>%
+  group_by(DAY_WEEK) %>%
+  summarise(count = n())
+
+df4
+
+p <- ggplot(df4, aes(x=DAY_WEEK, y = count)) + geom_bar(stat="identity")+geom_text(aes(label = count), position = position_dodge(width = 0.9), vjust=-0.25)
+p + ggtitle("Total Accidents per Day of Week")+ylab("Total Accidents")+xlab("Day of the Week")
+```
+
+*Hour of the Day is given in military time*
+*There were 408 accidents that happened at an unknown time(number 99). This has been removed from the data*
+
+```{r}
+df5 <- df %>%
+  group_by(HOUR.x) %>%
+  summarise(count = n()) %>%
+  filter(!row_number() %in% c(25))
+
+df5
+
+p <- ggplot(df5, aes(x=HOUR.x, y = count)) + geom_bar(stat="identity")+geom_text(aes(label = count), position = position_dodge(width = 0.9), vjust=-0.25, size = 2)
+p + ggtitle("Total Accidents per Hour")+ylab("Total Accidents")+xlab("Hour in Military Time")
+```
+
+*Sex 1: Male*
+*Sex 2: Female*
+*Sex 8: Not Reported*
+*Sex 9: Unknown*
+```{r}
+df6 <- df %>%
+  group_by(SEX) %>%
+  summarise(count = n())
+
+df6
+
+p <- ggplot(df6, aes(x=SEX, y = count)) + geom_bar(stat="identity")+geom_text(aes(label = count), position = position_dodge(width = 0.9), vjust=-0.25)
+p + ggtitle("Total Accidents per Sex")+ylab("Total Accidents")+xlab("Sex")
+```
+
+
+## Question 6
+Now plot a choropleth map of the number of deaths on a county level. Also explain what you find.
+
+### I found that there are counties during when this data was collected that didn't have accidents in them. Also, it looks like the majority of the accidents happen towards the coast.
+```{r}
+
+df11 <- df1 %>%
+  group_by(COUNTY.x) %>%
+  summarise(count = n())
+
+df11
+
+county <- map_data('county')
+head(county)
+
+GLC2 <- GLC %>%
+  select(`County Code`, `County Name`) %>%
+  distinct(`County Code`, `County Name`) %>%
+  rename(COUNTY = `County Name`)%>%
+  rename(COUNTY.x = `County Code`)
+
+GLC2$subregion = tolower(GLC2$COUNTY)
+
+GLC2
+
+joined4 <- inner_join(GLC2, df11, by = 'COUNTY.x')
+
+joined5 <- inner_join(joined4,county, by = 'subregion')
+
+joined5
+
+b <- ggplot(joined5, aes(x=long, y=lat, group=group,fill=count))+geom_polygon()
+
+b
+
+```
+
